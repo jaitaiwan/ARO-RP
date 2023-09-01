@@ -5,6 +5,7 @@ package hive
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -13,7 +14,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/Azure/ARO-RP/pkg/api"
@@ -436,6 +439,69 @@ func TestGetClusterDeployment(t *testing.T) {
 
 			if result != nil && result.Name != cd.Name && result.Namespace != cd.Namespace {
 				t.Fatal("Unexpected cluster deployment returned", result)
+			}
+		})
+	}
+}
+
+func TestDeleteHiveResource(t *testing.T) {
+	defaultName := "aname"
+	defaultNamespace := "namespace"
+
+	namespacedObject := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: defaultNamespace,
+			Name:      "pod",
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
+	}
+
+	unnamespacedObject := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node",
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "node",
+			APIVersion: "v1",
+		},
+	}
+
+	for _, tt := range []struct {
+		name    string
+		cd      client.Object
+		wantErr string
+	}{
+		{name: "unnamespaced object can be deleted", cd: unnamespacedObject},
+		{name: "namespaced object can be deleted", cd: namespacedObject},
+		{name: "errors when no obj", wantErr: fmt.Sprintf("pods.core \"%s\" not found", defaultName)},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClientBuilder := fake.NewClientBuilder()
+			if tt.wantErr == "" {
+				fakeClientBuilder = fakeClientBuilder.WithRuntimeObjects(tt.cd)
+			}
+			c := clusterManager{
+				hiveClientset: fakeClientBuilder.Build(),
+				log:           logrus.NewEntry(logrus.StandardLogger()),
+			}
+
+			gvk := schema.GroupVersionKind{Group: "core", Version: "v1", Kind: "pod"}
+			name := defaultName
+			namespace := defaultNamespace
+			if tt.cd != nil {
+				name = tt.cd.GetName()
+				namespace = tt.cd.GetNamespace()
+				gvk = tt.cd.GetObjectKind().GroupVersionKind()
+				t.Logf("Thing is %+v", tt.cd.GetObjectKind())
+			}
+
+			err := c.DeleteHiveResource(context.Background(), gvk, name, namespace)
+			if err != nil && err.Error() != tt.wantErr ||
+				err == nil && tt.wantErr != "" {
+				t.Fatal(err)
 			}
 		})
 	}

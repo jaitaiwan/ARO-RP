@@ -12,6 +12,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
@@ -220,6 +222,18 @@ func (hr *clusterManager) GetClusterDeployment(ctx context.Context, doc *api.Ope
 	}
 
 	return cd, nil
+}
+
+func (hr *clusterManager) DeleteHiveResource(ctx context.Context, gvk schema.GroupVersionKind, name, namespace string) error {
+	var obj = &unstructured.Unstructured{}
+	obj.SetName(name)
+	obj.SetGroupVersionKind(gvk)
+	// Allow for un-namespaced objects
+	if namespace != "" {
+		obj.SetNamespace(namespace)
+	}
+
+	return hr.hiveClientset.Delete(ctx, obj)
 }
 
 func (hr *clusterManager) ResetCorrelationData(ctx context.Context, doc *api.OpenShiftClusterDocument) error {
