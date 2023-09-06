@@ -471,17 +471,17 @@ func TestDeleteHiveResource(t *testing.T) {
 
 	for _, tt := range []struct {
 		name    string
-		cd      client.Object
+		d       client.Object
 		wantErr string
 	}{
-		{name: "unnamespaced object can be deleted", cd: unnamespacedObject},
-		{name: "namespaced object can be deleted", cd: namespacedObject},
+		{name: "unnamespaced object can be deleted", d: unnamespacedObject},
+		{name: "namespaced object can be deleted", d: namespacedObject},
 		{name: "errors when no obj", wantErr: fmt.Sprintf("pods.core \"%s\" not found", defaultName)},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeClientBuilder := fake.NewClientBuilder()
 			if tt.wantErr == "" {
-				fakeClientBuilder = fakeClientBuilder.WithRuntimeObjects(tt.cd)
+				fakeClientBuilder = fakeClientBuilder.WithRuntimeObjects(tt.d)
 			}
 			c := clusterManager{
 				hiveClientset: fakeClientBuilder.Build(),
@@ -491,17 +491,84 @@ func TestDeleteHiveResource(t *testing.T) {
 			gvk := schema.GroupVersionKind{Group: "core", Version: "v1", Kind: "pod"}
 			name := defaultName
 			namespace := defaultNamespace
-			if tt.cd != nil {
-				name = tt.cd.GetName()
-				namespace = tt.cd.GetNamespace()
-				gvk = tt.cd.GetObjectKind().GroupVersionKind()
-				t.Logf("Thing is %+v", tt.cd.GetObjectKind())
+			if tt.d != nil {
+				name = tt.d.GetName()
+				namespace = tt.d.GetNamespace()
+				gvk = tt.d.GetObjectKind().GroupVersionKind()
+				t.Logf("Thing is %+v", tt.d.GetObjectKind())
 			}
 
 			err := c.DeleteHiveResource(context.Background(), gvk, name, namespace)
 			if err != nil && err.Error() != tt.wantErr ||
 				err == nil && tt.wantErr != "" {
 				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestRetrieveHiveResource(t *testing.T) {
+	defaultName := "aname"
+	defaultNamespace := "namespace"
+
+	namespacedObject := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: defaultNamespace,
+			Name:      "pod",
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "pod",
+			APIVersion: "v1",
+		},
+	}
+
+	unnamespacedObject := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node",
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "node",
+			APIVersion: "v1",
+		},
+	}
+
+	for _, tt := range []struct {
+		name    string
+		d       client.Object
+		wantErr string
+	}{
+		{name: "unnamespaced object can be retrieved", d: unnamespacedObject},
+		{name: "namespaced object can be retrieved", d: namespacedObject},
+		{name: "errors when no obj", wantErr: fmt.Sprintf("pods.core \"%s\" not found", defaultName)},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClientBuilder := fake.NewClientBuilder()
+			if tt.wantErr == "" {
+				fakeClientBuilder = fakeClientBuilder.WithRuntimeObjects(tt.d)
+			}
+			c := clusterManager{
+				hiveClientset: fakeClientBuilder.Build(),
+				log:           logrus.NewEntry(logrus.StandardLogger()),
+			}
+
+			gvk := schema.GroupVersionKind{Group: "core", Version: "v1", Kind: "pod"}
+			name := defaultName
+			namespace := defaultNamespace
+			if tt.d != nil {
+				name = tt.d.GetName()
+				namespace = tt.d.GetNamespace()
+				gvk = tt.d.GetObjectKind().GroupVersionKind()
+				t.Logf("Thing is %+v", tt.d.GetObjectKind())
+			}
+
+			obj, err := c.RetrieveHiveResource(context.Background(), gvk, name, namespace)
+			if err != nil && err.Error() != tt.wantErr ||
+				err == nil && tt.wantErr != "" {
+				t.Fatal(err)
+			}
+
+			if tt.d != nil && obj.GetName() != tt.d.GetName() {
+				t.Fatalf("expected input document to match output. Got %s", tt.d.GetName())
 			}
 		})
 	}
