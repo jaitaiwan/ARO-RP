@@ -11,6 +11,8 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/openshift/hive/apis/hive/v1"
 	v10 "k8s.io/api/core/v1"
+	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
 
 	api "github.com/Azure/ARO-RP/pkg/api"
 )
@@ -79,6 +81,20 @@ func (m *MockClusterManager) Delete(arg0 context.Context, arg1 *api.OpenShiftClu
 func (mr *MockClusterManagerMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockClusterManager)(nil).Delete), arg0, arg1)
+}
+
+// DeleteHiveResource mocks base method.
+func (m *MockClusterManager) DeleteHiveResource(arg0 context.Context, arg1 schema.GroupVersionKind, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteHiveResource", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteHiveResource indicates an expected call of DeleteHiveResource.
+func (mr *MockClusterManagerMockRecorder) DeleteHiveResource(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteHiveResource", reflect.TypeOf((*MockClusterManager)(nil).DeleteHiveResource), arg0, arg1, arg2, arg3)
 }
 
 // GetClusterDeployment mocks base method.
@@ -152,4 +168,19 @@ func (m *MockClusterManager) ResetCorrelationData(arg0 context.Context, arg1 *ap
 func (mr *MockClusterManagerMockRecorder) ResetCorrelationData(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetCorrelationData", reflect.TypeOf((*MockClusterManager)(nil).ResetCorrelationData), arg0, arg1)
+}
+
+// RetrieveHiveResource mocks base method.
+func (m *MockClusterManager) RetrieveHiveResource(arg0 context.Context, arg1 schema.GroupVersionKind, arg2, arg3 string) (*unstructured.Unstructured, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RetrieveHiveResource", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*unstructured.Unstructured)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RetrieveHiveResource indicates an expected call of RetrieveHiveResource.
+func (mr *MockClusterManagerMockRecorder) RetrieveHiveResource(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetrieveHiveResource", reflect.TypeOf((*MockClusterManager)(nil).RetrieveHiveResource), arg0, arg1, arg2, arg3)
 }

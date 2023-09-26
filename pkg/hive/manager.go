@@ -38,7 +38,7 @@ type ClusterManager interface {
 	// DeleteHiveResource deletes a resource from a hive cluster
 	DeleteHiveResource(ctx context.Context, gvk schema.GroupVersionKind, name, namespace string) error
 	// RetrieveHiveObject retrieves an object from a hive cluster
-	RetrieveHiveResource(ctx context.Context, gvk schema.GroupVersionKind, name, namespace string) (client.Object, error)
+	RetrieveHiveResource(ctx context.Context, gvk schema.GroupVersionKind, name, namespace string) (*unstructured.Unstructured, error)
 	// Install creates a ClusterDocument and related secrets for a new cluster
 	// so that it can be provisioned by Hive.
 	Install(ctx context.Context, sub *api.SubscriptionDocument, doc *api.OpenShiftClusterDocument, version *api.OpenShiftVersion) error
@@ -240,7 +240,7 @@ func (hr *clusterManager) DeleteHiveResource(ctx context.Context, gvk schema.Gro
 	return hr.hiveClientset.Delete(ctx, obj)
 }
 
-func (hr *clusterManager) RetrieveHiveResource(ctx context.Context, gvk schema.GroupVersionKind, name, namespace string) (client.Object, error) {
+func (hr *clusterManager) RetrieveHiveResource(ctx context.Context, gvk schema.GroupVersionKind, name, namespace string) (*unstructured.Unstructured, error) {
 	var obj = &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(gvk)
 	err := hr.hiveClientset.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, obj)
